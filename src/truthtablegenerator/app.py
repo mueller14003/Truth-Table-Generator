@@ -6,7 +6,6 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 from inspect import signature
-from functools import partial
 
 class Infix(object):
     def __init__(self, func):
@@ -14,7 +13,7 @@ class Infix(object):
     def __or__(self, other):
         return self.func(other)
     def __ror__(self, other):
-        return Infix(partial(self.func, other))
+        return Infix(lambda x: self.func(other, x))
     def __call__(self, v1, v2):
         return self.func(v1, v2)
 
@@ -22,9 +21,9 @@ class Infix(object):
 t_dict = {38: 8743, 94: 8853, 124: 8744, 126: 172} # Dict for str.translate()
 prettify = lambda s: s.translate(t_dict).replace('<->','↔').replace('->','→')
 
-κ = Infix(lambda a,b: ~a | b) # Conditional
-β = Infix(lambda a,b: ~(a ^ b)) # Biconditional
-fix_inline = lambda s: s.replace('<->','|β|').replace('->','|κ|')
+cond = Infix(lambda a,b: ~a | b) # Conditional
+bicond = Infix(lambda a,b: ~(a ^ b)) # Biconditional
+fix_inline = lambda s: s.replace('<->','|bicond|').replace('->','|cond|')
 
 flatten = lambda l: sum(map(flatten,l),[]) if isinstance(l,list) else [l] # Flattens lists
 get_arity = lambda f: len(signature(f).parameters) # Returns Arity of a Function
@@ -61,7 +60,7 @@ class TruthTableGenerator(toga.App):
             style=Pack(padding=5)
         )
 
-        truth_table = toga.Table(headings=get_headings(default_expression), data=mttfs(default_expression), missing_value="")
+        truth_table = toga.Table(headings=get_headings(default_expression), data=mttfs(default_expression))
 
         self.main_box.add(input_box)
         self.main_box.add(button)
@@ -73,7 +72,7 @@ class TruthTableGenerator(toga.App):
 
     def make_tt(self, widget):
         boolean_expression = self.be_input.value or 'p -> q'
-        truth_table = toga.Table(headings=get_headings(boolean_expression), data=mttfs(boolean_expression), missing_value="")
+        truth_table = toga.Table(headings=get_headings(boolean_expression), data=mttfs(boolean_expression))
         self.main_box.remove(self.main_box.children[-1])
         self.main_box.add(truth_table)
         
