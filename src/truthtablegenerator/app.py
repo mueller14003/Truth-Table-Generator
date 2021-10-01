@@ -34,7 +34,7 @@ make_tt = lambda f: [*map(flatten,[*map(list,zip(gbfa(f),output(f)))])] # Make T
 gv = lambda s: sorted([*{*filter(str.isalpha,s)}]) # Gets Variables from String
 gvf = lambda s: ','.join(gv(s)) # Get Vars (formatted)
 mttfs = lambda s: make_tt(eval(f"lambda {gvf(s)}:[0,1][{fix_inline(s)}]")) # Make Truth Table from String
-get_headings = lambda s: gv(s)+ [prettify(s)]
+get_headings = lambda s: [*gv(s),prettify(s)]
 
 
 class TruthTableGenerator(toga.App):
