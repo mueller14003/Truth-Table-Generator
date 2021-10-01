@@ -43,11 +43,13 @@ class TruthTableGenerator(toga.App):
     def startup(self):
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
+        default_expression = "p -> q"
+
         input_label = toga.Label(
             'Enter a Boolean Expression: ',
             style=Pack(padding=(0, 5))
         )
-        self.be_input = toga.TextInput(style=Pack(flex=1), placeholder="p -> q")
+        self.be_input = toga.TextInput(style=Pack(flex=1), placeholder=default_expression)
 
         input_box = toga.Box(style=Pack(direction=ROW, padding=5))
         input_box.add(input_label)
@@ -59,9 +61,11 @@ class TruthTableGenerator(toga.App):
             style=Pack(padding=5)
         )
 
+        truth_table = toga.Table(headings=get_headings(default_expression), data=mttfs(default_expression), missing_value="")
+
         self.main_box.add(input_box)
         self.main_box.add(button)
-        self.make_tt()
+        self.main_box.add(truth_table)
 
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.main_box
@@ -70,8 +74,7 @@ class TruthTableGenerator(toga.App):
     def make_tt(self, widget):
         boolean_expression = self.be_input.value or 'p -> q'
         truth_table = toga.Table(headings=get_headings(boolean_expression), data=mttfs(boolean_expression), missing_value="")
-        if len(self.main_box.children) > 2:
-            self.main_box.remove(self.main_box.children[-1])
+        self.main_box.remove(self.main_box.children[-1])
         self.main_box.add(truth_table)
         
 
