@@ -35,10 +35,11 @@ gv = lambda s: sorted([*{*filter(str.isalpha,s)}]) # Gets Variables from String
 gvf = lambda s: ','.join(gv(s)) # Get Vars (formatted)
 mttfs = lambda s: make_tt(eval(f"lambda {gvf(s)}:[0,1][{fix_inline(s)}]")) # Make Truth Table from String
 get_headings = lambda s: [*gv(s),prettify(s)]
+get_height_tt = lambda s: 100*(len(gv(s))-1)
 
 
-class TruthTableGenerator(toga.App):
-
+class TruthTableGenerator(toga.App):   
+    
     def startup(self):
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -60,7 +61,12 @@ class TruthTableGenerator(toga.App):
             style=Pack(padding=5)
         )
 
-        truth_table = toga.Table(headings=get_headings(default_expression), data=mttfs(default_expression))
+        truth_table = toga.Table(
+            headings=get_headings(default_expression), 
+            data=mttfs(default_expression), 
+            style=Pack(
+                height=100, 
+                padding=5))
 
         self.main_box.add(input_box)
         self.main_box.add(button)
@@ -72,7 +78,14 @@ class TruthTableGenerator(toga.App):
 
     def make_tt(self, widget):
         boolean_expression = self.be_input.value or 'p -> q'
-        truth_table = toga.Table(headings=get_headings(boolean_expression), data=mttfs(boolean_expression))
+
+        truth_table = toga.Table(
+            headings=get_headings(boolean_expression), 
+            data=mttfs(boolean_expression), 
+            style=Pack(
+                height=get_height_tt(boolean_expression), 
+                padding=5))
+        
         self.main_box.remove(self.main_box.children[-1])
         self.main_box.add(truth_table)
         
