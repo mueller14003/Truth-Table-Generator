@@ -37,8 +37,6 @@ mttfs = lambda s: make_tt(eval(f"lambda {gvf(s)}:[0,1][{fix_inline(s)}]")) # Mak
 
 get_headings = lambda s: [*gv(s),prettify(s)]
 
-get_height_tt = lambda s: 26 + 92*2**(len(gv(s))-2)
-
 make_tt_html = lambda s: """<!DOCTYPE html>
 <html>
 <style>
@@ -155,7 +153,7 @@ class TruthTableGenerator(toga.App):
             headings=get_headings(default_expression), 
             data=mttfs(default_expression), 
             style=Pack(
-                height=get_height_tt(default_expression), 
+                flex=1,
                 padding=5))
 
         self.main_box.add(input_box)
@@ -173,7 +171,7 @@ class TruthTableGenerator(toga.App):
             headings=get_headings(boolean_expression), 
             data=mttfs(boolean_expression), 
             style=Pack(
-                height=get_height_tt(boolean_expression), 
+                flex=1, 
                 padding=5))
         
         self.main_box.remove(self.main_box.children[-1])
