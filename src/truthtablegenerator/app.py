@@ -101,7 +101,15 @@ make_tt_org = lambda s: f"* Truth Table for ~{prettify(s)}~\n{org_table(s)}"
 class TruthTableGenerator(toga.App):   
     
     def startup(self):
-        file_group = toga.Group("File")
+        help_group = toga.Group.HELP
+
+        input_syntax = toga.Command(
+            self.ShowInputSyntax,
+            label="Input Syntax",
+            group=help_group
+        )
+
+        file_group = toga.Group.FILE
 
         export_html = toga.Command(
             self.ExportHTML,
@@ -127,7 +135,7 @@ class TruthTableGenerator(toga.App):
             group=file_group
         )
 
-        self.commands.add(export_html, export_markdown, export_latex, export_org)
+        self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax)
 
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -220,6 +228,25 @@ class TruthTableGenerator(toga.App):
 
         with open(filename, "w", encoding='utf-8') as f:
             f.writelines(make_tt_org(boolean_expression))
+
+    def ShowInputSyntax(self, widget):
+        return self.main_window.info_dialog(
+            title="Input Syntax",
+            message="""Please use the symbols from "Input Syntax" below when entering a boolean expression into the input box.
+
+Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
+
+Please limit all boolean variables to single characters of the english language (i.e. p, q, r, s, etc.).
+
+    |   Input Syntax     |   Logic Symbol    |   Name
+    |----------------------|----------------------|--------------------
+    |   ~                        |   ¬                       |   not
+    |   &                        |   ∧                       |   and
+    |   |                          |   ∨                       |   or
+    |   ^                        |   ⊕                       |   xor
+    |   ->                       |   →                       |   conditional
+    |   <->                    |   ↔                       |   biconditional"""
+        )
 
 def main():
     return TruthTableGenerator() 
