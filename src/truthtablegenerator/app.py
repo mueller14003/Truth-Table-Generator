@@ -2,6 +2,7 @@
 A cross-platform Truth Table Generator written in Python.
 """
 import toga
+from toga import style
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
@@ -33,7 +34,7 @@ output = lambda f: [*map(f,*zip(*gbfa(f)))] # Output of Boolean Function
 make_tt = lambda f: [*map(flatten,[*map(list,zip(gbfa(f),output(f)))])] # Make Truth Table
 gv = lambda s: sorted([*{*filter(str.isalpha,s)}]) # Gets Variables from String
 gvf = lambda s: ','.join(gv(s)) # Get Vars (formatted)
-mttfs = lambda s: make_tt(eval(f"lambda {gvf(s)}:[0,1][{fix_inline(s)}]")) # Make Truth Table from String
+make_truth_table = lambda s: make_tt(eval(f"lambda {gvf(s)}:[0,1][{fix_inline(s)}]")) # Make Truth Table from String
 
 get_headings = lambda s: [*gv(s),prettify(s)]
 
@@ -62,7 +63,7 @@ code {
   <tr>
 {chr(10).join([*map(lambda t: f"    <th>{t}</th>",get_headings(s))])}
   </tr>
-{chr(10).join([*map(lambda r: f"  <tr>{chr(10)}{chr(10).join([*map(lambda c: f'    <td>{c}</td>',r)])}{chr(10)}  </tr>",mttfs(s))])}
+{chr(10).join([*map(lambda r: f"  <tr>{chr(10)}{chr(10).join([*map(lambda c: f'    <td>{c}</td>',r)])}{chr(10)}  </tr>",make_truth_table(s))])}
 </table>
 
 </body>
@@ -71,7 +72,7 @@ code {
 
 md_line = lambda l: f"|{'|'.join(map(str,l))}|" # Markdown Line
 md_header = lambda s: f"|{'|'.join(gv(s))}|{prettify(s)}|\n|{'|'.join('-'*len(gv(s)))}|:-:|\n" # Markdown Header
-md_table = lambda s: md_header(s)+'\n'.join(map(md_line,mttfs(s))) # Markdown Truth Table
+md_table = lambda s: md_header(s)+'\n'.join(map(md_line,make_truth_table(s))) # Markdown Truth Table
 make_tt_markdown = lambda s: f"""# Truth Table for `{prettify(s)}`
 {md_table(s)}
 """
@@ -85,7 +86,7 @@ lt_prettify = lambda s: prettify(s).replace(
     '¬', '\\neg')
 lt_line = lambda l: ' & '.join(map(str,l))+'\\\\'
 lt_header = lambda s: lt_line(gv(s)+[lt_prettify(s)])
-lt_table = lambda s: '\n'.join(map(lt_line,mttfs(s)))
+lt_table = lambda s: '\n'.join(map(lt_line,make_truth_table(s)))
 make_tt_latex = lambda s: "\\documentclass[a4paper]{article}\n\\begin{document}" + \
     "\n\\title{Truth Table for $" + lt_prettify(s) + "$}\n\\author{Kyle Mueller}" + \
     "\n\\maketitle\n\\begin{displaymath}" + \
@@ -95,8 +96,10 @@ make_tt_latex = lambda s: "\\documentclass[a4paper]{article}\n\\begin{document}"
 
 org_line = lambda l: f"|{'|'.join(map(str,l))}|"
 org_header = lambda s: f"|{'|'.join(gv(s)+[prettify(s)])}|\n|{'+'.join('-'*(len(gv(s))+1))}|\n"
-org_table = lambda s: org_header(s) + '\n'.join(map(org_line,mttfs(s)))
+org_table = lambda s: org_header(s) + '\n'.join(map(org_line,make_truth_table(s)))
 make_tt_org = lambda s: f"* Truth Table for ~{prettify(s)}~\n{org_table(s)}"
+
+save_tt = lambda s: f"{get_headings(s)}\n{make_truth_table(s)}"
 
 class TruthTableGenerator(toga.App):   
     
@@ -106,36 +109,48 @@ class TruthTableGenerator(toga.App):
         input_syntax = toga.Command(
             self.ShowInputSyntax,
             label="Input Syntax",
+            shortcut=toga.Key.MOD_1 + 'i',
             group=help_group
         )
 
         file_group = toga.Group.FILE
 
+        save_truth_table = toga.Command(
+            self.SaveTruthTable,
+            label="Save",
+            shortcut=toga.Key.MOD_1 + 's',
+            group=file_group            
+        )
+
         export_html = toga.Command(
             self.ExportHTML,
             label="Export as HTML",
+            shortcut=toga.Key.MOD_1 + 'h',
             group=file_group
         )
 
         export_markdown = toga.Command(
             self.ExportMarkdown,
             label="Export as Markdown",
+            shortcut=toga.Key.MOD_1 + 'm',
             group=file_group
         )
 
         export_latex = toga.Command(
             self.ExportLaTeX,
             label="Export as LaTeX",
+            shortcut=toga.Key.MOD_1 + 'l',
             group=file_group
         )
 
         export_org = toga.Command(
             self.ExportORG,
             label="Export as ORG",
+            shortcut=toga.Key.MOD_1 + 'o',
             group=file_group
         )
 
-        self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax)
+        self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_truth_table)
 
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -159,7 +174,7 @@ class TruthTableGenerator(toga.App):
 
         truth_table = toga.Table(
             headings=get_headings(default_expression), 
-            data=mttfs(default_expression), 
+            data=make_truth_table(default_expression), 
             style=Pack(
                 flex=1,
                 padding=5))
@@ -177,7 +192,7 @@ class TruthTableGenerator(toga.App):
 
         truth_table = toga.Table(
             headings=get_headings(boolean_expression), 
-            data=mttfs(boolean_expression), 
+            data=make_truth_table(boolean_expression), 
             style=Pack(
                 flex=1, 
                 padding=5))
@@ -185,49 +200,34 @@ class TruthTableGenerator(toga.App):
         self.main_box.remove(self.main_box.children[-1])
         self.main_box.add(truth_table)
 
-    def ExportHTML(self, widget):
-        boolean_expression = self.be_input.value or 'p -> q'
-
-        filename = self.main_window.save_file_dialog(
-            title="Export as HTML", 
+    def GetFilename(self, title, file_types):
+        return self.main_window.save_file_dialog(
+            title=title, 
             suggested_filename="truth_table",
-            file_types=["html", "txt"])
+            file_types=file_types)
+
+    def SaveFile(self, title, file_types, export_function):
+        filename = self.GetFilename(title, file_types)
+
+        boolean_expression = self.be_input.value or 'p -> q'
         
         with open(filename, "w", encoding='utf-8') as f:
-            f.writelines(make_tt_html(boolean_expression))
+            f.writelines(export_function(boolean_expression))
+
+    def SaveTruthTable(self, widget):
+        self.SaveFile("Save Truth Table", ["txt"], save_tt)
+
+    def ExportHTML(self, widget):
+        self.SaveFile("Export as HTML", ["html", "txt"], make_tt_html)
 
     def ExportMarkdown(self, widget):
-        boolean_expression = self.be_input.value or 'p -> q'
-        
-        filename = self.main_window.save_file_dialog(
-            title="Export as Markdown", 
-            suggested_filename="truth_table",
-            file_types=["md", "txt"])
-
-        with open(filename, "w", encoding='utf-8') as f:
-            f.writelines(make_tt_markdown(boolean_expression))
+        self.SaveFile("Export as Markdown", ["md", "txt"], make_tt_markdown)
 
     def ExportLaTeX(self, widget):
-        boolean_expression = self.be_input.value or 'p -> q'
-        
-        filename = self.main_window.save_file_dialog(
-            title="Export as LaTeX", 
-            suggested_filename="truth_table",
-            file_types=["tex", "txt"])
-
-        with open(filename, "w", encoding='utf-8') as f:
-            f.writelines(make_tt_latex(boolean_expression))
+        self.SaveFile("Export as LaTeX", ["tex", "txt"], make_tt_latex)
 
     def ExportORG(self, widget):
-        boolean_expression = self.be_input.value or 'p -> q'
-        
-        filename = self.main_window.save_file_dialog(
-            title="Export as ORG", 
-            suggested_filename="truth_table",
-            file_types=["org", "txt"])
-
-        with open(filename, "w", encoding='utf-8') as f:
-            f.writelines(make_tt_org(boolean_expression))
+        self.SaveFile("Export as ORG", ["org", "txt"], make_tt_org)
 
     def ShowInputSyntax(self, widget):
         return self.main_window.info_dialog(
@@ -245,8 +245,7 @@ Please limit all boolean variables to single characters of the english language 
     |   |                          |   ∨                       |   or
     |   ^                        |   ⊕                       |   xor
     |   ->                       |   →                       |   conditional
-    |   <->                    |   ↔                       |   biconditional"""
-        )
+    |   <->                    |   ↔                       |   biconditional""")
 
 def main():
     return TruthTableGenerator() 
