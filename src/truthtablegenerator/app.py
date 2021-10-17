@@ -18,6 +18,8 @@ class Infix(object):
     def __call__(self, v1, v2):
         return self.func(v1, v2)
 
+valid_symbols = ['→','↔','∨','∧','⊕','¬']
+
 #         ~   ¬     ^   ⊕     &    ∧     |    ∨
 t_dict = {38: 8743, 94: 8853, 124: 8744, 126: 172} # Dict for str.translate()
 prettify = lambda s: " ".join(s.translate(t_dict).replace('<->','↔').replace('->','→').replace(" ",""))
@@ -99,7 +101,10 @@ org_header = lambda s: f"|{'|'.join(gv(s)+[prettify(s)])}|\n|{'+'.join('-'*(len(
 org_table = lambda s: org_header(s) + '\n'.join(map(org_line,make_truth_table(s)))
 make_tt_org = lambda s: f"* Truth Table for ~{prettify(s)}~\n{org_table(s)}"
 
-save_tt = lambda s: f"{get_headings(s)}\n{make_truth_table(s)}"
+save_tt = lambda s: f"{s}\n{get_headings(s)}\n{make_truth_table(s)}"
+
+valid_s = lambda s: s.isalpha() or s in valid_symbols
+valid_bx = lambda s: all(map(valid_s,prettify(s).split()))
 
 class TruthTableGenerator(toga.App):   
     
@@ -109,7 +114,7 @@ class TruthTableGenerator(toga.App):
         input_syntax = toga.Command(
             self.ShowInputSyntax,
             label="Input Syntax",
-            shortcut=toga.Key.MOD_1 + 'i',
+            shortcut=toga.Key.MOD_1 + toga.Key.SHIFT + 'i',
             group=help_group
         )
 
@@ -120,6 +125,13 @@ class TruthTableGenerator(toga.App):
             label="Save",
             shortcut=toga.Key.MOD_1 + 's',
             group=file_group            
+        )
+
+        import_truth_table = toga.Command(
+            self.ImportTruthTable,
+            label="Import",
+            shortcut=toga.Key.MOD_1 + 'i',
+            group=file_group
         )
 
         export_html = toga.Command(
@@ -150,7 +162,7 @@ class TruthTableGenerator(toga.App):
             group=file_group
         )
 
-        self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_truth_table)
+        self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_truth_table, import_truth_table)
 
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -190,15 +202,22 @@ class TruthTableGenerator(toga.App):
     def make_tt(self, widget):
         boolean_expression = self.be_input.value or 'p -> q'
 
-        truth_table = toga.Table(
-            headings=get_headings(boolean_expression), 
-            data=make_truth_table(boolean_expression), 
-            style=Pack(
-                flex=1, 
-                padding=5))
-        
-        self.main_box.remove(self.main_box.children[-1])
-        self.main_box.add(truth_table)
+        if not valid_bx(boolean_expression):
+            self.main_window.error_dialog(
+                title="Invalid Boolean Expression",
+                message=f"The boolean expression '{boolean_expression}' invalid.\n" \
+                         "Please enter a valid boolean expression and try again.\n" \
+                         "Press CTRL+SHIFT+i for instructions on proper input syntax.")
+        else:
+            truth_table = toga.Table(
+                headings=get_headings(boolean_expression), 
+                data=make_truth_table(boolean_expression), 
+                style=Pack(
+                    flex=1, 
+                    padding=5))
+            
+            self.main_box.remove(self.main_box.children[-1])
+            self.main_box.add(truth_table)
 
     def GetFilename(self, title, file_types):
         return self.main_window.save_file_dialog(
@@ -213,6 +232,28 @@ class TruthTableGenerator(toga.App):
         
         with open(filename, "w", encoding='utf-8') as f:
             f.writelines(export_function(boolean_expression))
+
+    def ImportTruthTable(self, widget):
+        filename = self.main_window.open_file_dialog(
+            title="Import Truth Table",
+            file_types=["txt"])
+        
+        boolean_expression = ""
+
+        with open(filename, "r", encoding='utf-8') as f:
+            boolean_expression = f.readline() or 'p -> q'
+
+        self.be_input.value = boolean_expression
+
+        truth_table = toga.Table(
+            headings=get_headings(boolean_expression), 
+            data=make_truth_table(boolean_expression), 
+            style=Pack(
+                flex=1, 
+                padding=5))
+        
+        self.main_box.remove(self.main_box.children[-1])
+        self.main_box.add(truth_table)
 
     def SaveTruthTable(self, widget):
         self.SaveFile("Save Truth Table", ["txt"], save_tt)
