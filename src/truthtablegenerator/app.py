@@ -1,6 +1,7 @@
 """
 A cross-platform Truth Table Generator written in Python.
 """
+import sys
 import toga
 from toga import style
 from toga.style import Pack
@@ -26,7 +27,7 @@ prettify = lambda s: " ".join(s.translate(t_dict).replace('<->','↔').replace('
 
 cond = Infix(lambda a,b: ~a | b) # Conditional
 bicond = Infix(lambda a,b: ~(a ^ b)) # Biconditional
-fix_inline = lambda s: s.replace('<->','|bicond|').replace('->','|cond|')
+fix_inline = lambda s: prettify(s).replace('↔','|bicond|').replace('→','|cond|')
 
 flatten = lambda l: sum(map(flatten,l),[]) if isinstance(l,list) else [l] # Flattens lists
 get_arity = lambda f: len(signature(f).parameters) # Returns Arity of a Function
@@ -109,60 +110,61 @@ valid_bx = lambda s: all(map(valid_s,prettify(s).split()))
 class TruthTableGenerator(toga.App):   
     
     def startup(self):
-        help_group = toga.Group.HELP
+        if not hasattr(sys, 'getandroidapilevel'):
+            help_group = toga.Group.HELP
 
-        input_syntax = toga.Command(
-            self.ShowInputSyntax,
-            label="Input Syntax",
-            shortcut=toga.Key.MOD_1 + toga.Key.SHIFT + 'i',
-            group=help_group
-        )
+            input_syntax = toga.Command(
+                self.ShowInputSyntax,
+                label="Input Syntax",
+                shortcut=toga.Key.MOD_1 + toga.Key.SHIFT + 'i',
+                group=help_group
+            )
 
-        file_group = toga.Group.FILE
+            file_group = toga.Group.FILE
 
-        save_truth_table = toga.Command(
-            self.SaveTruthTable,
-            label="Save",
-            shortcut=toga.Key.MOD_1 + 's',
-            group=file_group            
-        )
+            save_truth_table = toga.Command(
+                self.SaveTruthTable,
+                label="Save",
+                shortcut=toga.Key.MOD_1 + 's',
+                group=file_group            
+            )
 
-        import_truth_table = toga.Command(
-            self.ImportTruthTable,
-            label="Import",
-            shortcut=toga.Key.MOD_1 + 'i',
-            group=file_group
-        )
+            import_truth_table = toga.Command(
+                self.ImportTruthTable,
+                label="Import",
+                shortcut=toga.Key.MOD_1 + 'i',
+                group=file_group
+            )
 
-        export_html = toga.Command(
-            self.ExportHTML,
-            label="Export as HTML",
-            shortcut=toga.Key.MOD_1 + 'h',
-            group=file_group
-        )
+            export_html = toga.Command(
+                self.ExportHTML,
+                label="Export as HTML",
+                shortcut=toga.Key.MOD_1 + 'h',
+                group=file_group
+            )
 
-        export_markdown = toga.Command(
-            self.ExportMarkdown,
-            label="Export as Markdown",
-            shortcut=toga.Key.MOD_1 + 'm',
-            group=file_group
-        )
+            export_markdown = toga.Command(
+                self.ExportMarkdown,
+                label="Export as Markdown",
+                shortcut=toga.Key.MOD_1 + 'm',
+                group=file_group
+            )
 
-        export_latex = toga.Command(
-            self.ExportLaTeX,
-            label="Export as LaTeX",
-            shortcut=toga.Key.MOD_1 + 'l',
-            group=file_group
-        )
+            export_latex = toga.Command(
+                self.ExportLaTeX,
+                label="Export as LaTeX",
+                shortcut=toga.Key.MOD_1 + 'l',
+                group=file_group
+            )
 
-        export_org = toga.Command(
-            self.ExportORG,
-            label="Export as ORG",
-            shortcut=toga.Key.MOD_1 + 'o',
-            group=file_group
-        )
+            export_org = toga.Command(
+                self.ExportORG,
+                label="Export as ORG",
+                shortcut=toga.Key.MOD_1 + 'o',
+                group=file_group
+            )
 
-        self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_truth_table, import_truth_table)
+            self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_truth_table, import_truth_table)
 
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -205,7 +207,7 @@ class TruthTableGenerator(toga.App):
         if not valid_bx(boolean_expression):
             self.main_window.error_dialog(
                 title="Invalid Boolean Expression",
-                message=f"The boolean expression '{boolean_expression}' invalid.\n" \
+                message=f"The boolean expression '{boolean_expression}' is invalid.\n" \
                          "Please enter a valid boolean expression and try again.\n" \
                          "Press CTRL+SHIFT+i for instructions on proper input syntax.")
         else:
