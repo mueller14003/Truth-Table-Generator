@@ -19,7 +19,7 @@ class Infix(object):
     def __call__(self, v1, v2):
         return self.func(v1, v2)
 
-valid_symbols = ['→','↔','∨','∧','⊕','¬']
+valid_symbols = ['→','↔','∨','∧','⊕','¬','(',')']
 
 #         ~   ¬     ^   ⊕     &    ∧     |    ∨
 t_dict = {38: 8743, 94: 8853, 124: 8744, 126: 172} # Dict for str.translate()
@@ -27,17 +27,19 @@ prettify = lambda s: " ".join(s.translate(t_dict).replace('<->','↔').replace('
 
 cond = Infix(lambda a,b: ~a | b) # Conditional
 bicond = Infix(lambda a,b: ~(a ^ b)) # Biconditional
-fix_inline = lambda s: prettify(s).replace('↔','|bicond|').replace('→','|cond|')
+fix_inline = lambda s: s.replace('<->','|bicond|').replace('->','|cond|')
 
 flatten = lambda l: sum(map(flatten,l),[]) if isinstance(l,list) else [l] # Flattens lists
 get_arity = lambda f: len(signature(f).parameters) # Returns Arity of a Function
 get_bits = lambda n: [*map(lambda x:[*map(int,bin(x)[2:].zfill(n))],range(2**n))] # Get Bits
+get_string_bits = lambda n: [*map(lambda x:[*map(str,bin(x)[2:].zfill(n))],range(2**n))] # Get String Bits
 gbfa = lambda f: get_bits(get_arity(f)) # Get Bits from Arity
+gsbfa = lambda f: get_string_bits(get_arity(f)) # Get String Bits from Arity
 output = lambda f: [*map(f,*zip(*gbfa(f)))] # Output of Boolean Function
-make_tt = lambda f: [*map(flatten,[*map(list,zip(gbfa(f),output(f)))])] # Make Truth Table
+make_tt = lambda f: [*map(flatten,[*map(list,zip(gsbfa(f),output(f)))])] # Make Truth Table
 gv = lambda s: sorted([*{*filter(str.isalpha,s)}]) # Gets Variables from String
 gvf = lambda s: ','.join(gv(s)) # Get Vars (formatted)
-make_truth_table = lambda s: make_tt(eval(f"lambda {gvf(s)}:[0,1][{fix_inline(s)}]")) # Make Truth Table from String
+make_truth_table = lambda s: make_tt(eval(f"lambda {gvf(s)}:['0','1'][{fix_inline(s)}]")) # Make Truth Table from String
 
 get_headings = lambda s: [*gv(s),prettify(s)]
 
@@ -102,7 +104,7 @@ org_header = lambda s: f"|{'|'.join(gv(s)+[prettify(s)])}|\n|{'+'.join('-'*(len(
 org_table = lambda s: org_header(s) + '\n'.join(map(org_line,make_truth_table(s)))
 make_tt_org = lambda s: f"* Truth Table for ~{prettify(s)}~\n{org_table(s)}"
 
-save_tt = lambda s: f"{s}\n{get_headings(s)}\n{make_truth_table(s)}"
+save_bx = lambda s: s
 
 valid_s = lambda s: s.isalpha() or s in valid_symbols
 valid_bx = lambda s: all(map(valid_s,prettify(s).split()))
@@ -122,15 +124,15 @@ class TruthTableGenerator(toga.App):
 
             file_group = toga.Group.FILE
 
-            save_truth_table = toga.Command(
-                self.SaveTruthTable,
+            save_ = toga.Command(
+                self.SaveBooleanExpression,
                 label="Save",
                 shortcut=toga.Key.MOD_1 + 's',
                 group=file_group            
             )
 
-            import_truth_table = toga.Command(
-                self.ImportTruthTable,
+            import_ = toga.Command(
+                self.ImportBooleanExpression,
                 label="Import",
                 shortcut=toga.Key.MOD_1 + 'i',
                 group=file_group
@@ -164,7 +166,7 @@ class TruthTableGenerator(toga.App):
                 group=file_group
             )
 
-            self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_truth_table, import_truth_table)
+            self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_, import_)
 
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -186,40 +188,103 @@ class TruthTableGenerator(toga.App):
             style=Pack(padding=5)
         )
 
-        truth_table = toga.Table(
-            headings=get_headings(default_expression), 
-            data=make_truth_table(default_expression), 
-            style=Pack(
-                flex=1,
-                padding=5))
-
         self.main_box.add(input_box)
         self.main_box.add(button)
-        self.main_box.add(truth_table)
+
+        if not hasattr(sys, 'getandroidapilevel'):
+            truth_table = toga.Table(
+                headings=get_headings(default_expression), 
+                data=make_truth_table(default_expression), 
+                style=Pack(
+                    flex=1,
+                    padding=5))
+
+            self.main_box.add(truth_table)
 
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.main_box
         self.main_window.show()
+        if not hasattr(sys, 'getandroidapilevel'):
+            self.main_window.info_dialog(
+                title="Input Syntax",
+                message="""Please use the symbols from "Input Syntax" below when entering a boolean expression into the input box.
 
-    def make_tt(self, widget):
-        boolean_expression = self.be_input.value or 'p -> q'
+Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
 
-        if not valid_bx(boolean_expression):
+Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).
+
+TO SEE THIS WINDOW AGAIN, go to "Help -> Input Syntax" or use "CTRL+SHIFT+i"
+
+    |   Input Syntax     |   Logic Symbols  |   Name
+    |----------------------|----------------------|--------------------
+    |   ~                        |   ¬, ˜, !                 |   not
+    |   &                        |   ∧, ·, &               |   and
+    |   |                          |   ∨, +, ∥               |   or
+    |   ^                        |   ⊕, ⊻, ≢              |   xor, not equivalence
+    |   ->                       |   →, ⇒, ⊃              |   conditional
+    |   <->                    |   ↔, ⇔, ≡              |   biconditional, equivalence""")
+        else:
+            self.main_window.info_dialog(
+                title="Input Syntax",
+                message="""Please use the symbols from "Syntax" below when entering a boolean expression into the input box.
+
+Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
+
+Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).
+
+|  Syntax  |  Logic      |  Name
+|--------------|---------------|-----------------
+|  ~            |  ¬, ˜, !       |  not
+|  &            |  ∧, ·, &      |  and
+|  |              |  ∨, +, ∥      |  or
+|  ^             |  ⊕, ⊻, ≢     |  xor
+|  -              |  →, ⇒, ⊃ |  conditional
+|  <->          |  ↔, ⇔, ≡ |  biconditional""")
+
+    def show_err(self, boolean_expression):
+        m_string = f"The boolean expression '{boolean_expression}' is invalid.\n\n" \
+                    "Please enter a valid boolean expression and try again."
+        if hasattr(sys, 'getandroidapilevel'):
+            self.main_window.info_dialog(
+                title="Invalid Boolean Expression",
+                message=m_string)
+        else:
             self.main_window.error_dialog(
                 title="Invalid Boolean Expression",
-                message=f"The boolean expression '{boolean_expression}' is invalid.\n" \
-                         "Please enter a valid boolean expression and try again.\n" \
-                         "Press CTRL+SHIFT+i for instructions on proper input syntax.")
+                message=m_string+"\n\nPress CTRL+SHIFT+i for instructions on proper input syntax.")
+
+    def make_tt(self, widget='', override=''):
+        boolean_expression = override or self.be_input.value or 'p -> q'
+
+        print(boolean_expression)
+
+        if not valid_bx(boolean_expression):
+            self.show_err(boolean_expression)
+
         else:
-            truth_table = toga.Table(
-                headings=get_headings(boolean_expression), 
-                data=make_truth_table(boolean_expression), 
-                style=Pack(
-                    flex=1, 
-                    padding=5))
-            
-            self.main_box.remove(self.main_box.children[-1])
-            self.main_box.add(truth_table)
+            try:
+                tt_headings = get_headings(boolean_expression)
+                tt_data = make_truth_table(boolean_expression)
+
+                if hasattr(sys, 'getandroidapilevel'):
+                    p_string = '\n'.join([*map(' | '.join,[tt_headings]+tt_data)])
+
+                    self.main_window.info_dialog(
+                        title=f"Truth Table for {prettify(boolean_expression)}",
+                        message=f"{p_string}")
+                else:
+                    self.main_box.remove(self.truth_table)
+
+                    self.truth_table = toga.Table(
+                        headings=tt_headings, 
+                        data=tt_data, 
+                        style=Pack(
+                            flex=1, 
+                            padding=5))
+                                
+                    self.main_box.add(self.truth_table)
+            except:
+                self.show_err(boolean_expression)
 
     def GetFilename(self, title, file_types):
         return self.main_window.save_file_dialog(
@@ -235,9 +300,9 @@ class TruthTableGenerator(toga.App):
         with open(filename, "w", encoding='utf-8') as f:
             f.writelines(export_function(boolean_expression))
 
-    def ImportTruthTable(self, widget):
+    def ImportBooleanExpression(self, widget):
         filename = self.main_window.open_file_dialog(
-            title="Import Truth Table",
+            title="Import",
             file_types=["txt"])
         
         boolean_expression = ""
@@ -246,19 +311,10 @@ class TruthTableGenerator(toga.App):
             boolean_expression = f.readline() or 'p -> q'
 
         self.be_input.value = boolean_expression
+        self.make_tt(widget=None, override=boolean_expression)
 
-        truth_table = toga.Table(
-            headings=get_headings(boolean_expression), 
-            data=make_truth_table(boolean_expression), 
-            style=Pack(
-                flex=1, 
-                padding=5))
-        
-        self.main_box.remove(self.main_box.children[-1])
-        self.main_box.add(truth_table)
-
-    def SaveTruthTable(self, widget):
-        self.SaveFile("Save Truth Table", ["txt"], save_tt)
+    def SaveBooleanExpression(self, widget):
+        self.SaveFile("Save", ["txt"], save_bx)
 
     def ExportHTML(self, widget):
         self.SaveFile("Export as HTML", ["html", "txt"], make_tt_html)
@@ -279,16 +335,16 @@ class TruthTableGenerator(toga.App):
 
 Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
 
-Please limit all boolean variables to single characters of the english language (i.e. p, q, r, s, etc.).
+Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).
 
-    |   Input Syntax     |   Logic Symbol    |   Name
+    |   Input Syntax     |   Logic Symbols  |   Name
     |----------------------|----------------------|--------------------
-    |   ~                        |   ¬                       |   not
-    |   &                        |   ∧                       |   and
-    |   |                          |   ∨                       |   or
-    |   ^                        |   ⊕                       |   xor
-    |   ->                       |   →                       |   conditional
-    |   <->                    |   ↔                       |   biconditional""")
+    |   ~                        |   ¬, ˜, !                 |   not
+    |   &                        |   ∧, ·, &               |   and
+    |   |                          |   ∨, +, ∥               |   or
+    |   ^                        |   ⊕, ⊻, ≢              |   xor, not equivalence
+    |   ->                       |   →, ⇒, ⊃              |   conditional
+    |   <->                    |   ↔, ⇔, ≡              |   biconditional, equivalence""")
 
 def main():
     return TruthTableGenerator() 
