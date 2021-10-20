@@ -192,14 +192,14 @@ class TruthTableGenerator(toga.App):
         self.main_box.add(button)
 
         if not hasattr(sys, 'getandroidapilevel'):
-            truth_table = toga.Table(
+            self.truth_table = toga.Table(
                 headings=get_headings(default_expression), 
                 data=make_truth_table(default_expression), 
                 style=Pack(
                     flex=1,
                     padding=5))
 
-            self.main_box.add(truth_table)
+            self.main_box.add(self.truth_table)
 
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.main_box
