@@ -43,26 +43,27 @@ make_truth_table = lambda s: make_tt(eval(f"lambda {gvf(s)}:['0','1'][{fix_inlin
 
 get_headings = lambda s: [*gv(s),prettify(s)]
 
-make_tt_html = lambda s: """<!DOCTYPE html>
+make_tt_html = lambda s: \
+f"""<!DOCTYPE html>
 <html>
 <style>
-th, td {
+th, td {chr(123)}
   border:1px solid black;
   padding:1ex;
-}
-table {
+{chr(125)}
+table {chr(123)}
   border-collapse: collapse;
-}
-code {
+{chr(125)}
+code {chr(123)}
   font-family: Consolas,"courier new";
   background-color: #eee;
   border: 1px solid #999;
   padding: 5px;
-}
+{chr(125)}
 </style>
 <body>
 
-""" + f"""<h2>Truth Table for <code>{prettify(s)}</code></h2>
+<h2>Truth Table for <code>{prettify(s)}</code></h2>
 
 <table>
   <tr>
@@ -78,9 +79,7 @@ code {
 md_line = lambda l: f"|{'|'.join(map(str,l))}|" # Markdown Line
 md_header = lambda s: f"|{'|'.join(gv(s))}|{prettify(s)}|\n|{'|'.join('-'*len(gv(s)))}|:-:|\n" # Markdown Header
 md_table = lambda s: md_header(s)+'\n'.join(map(md_line,make_truth_table(s))) # Markdown Truth Table
-make_tt_markdown = lambda s: f"""# Truth Table for `{prettify(s)}`
-{md_table(s)}
-"""
+make_tt_markdown = lambda s: f"# Truth Table for `{prettify(s)}`\n{md_table(s)}"
 
 lt_prettify = lambda s: prettify(s).replace(
     '→','\\rightarrow').replace(
@@ -103,8 +102,6 @@ org_line = lambda l: f"|{'|'.join(map(str,l))}|"
 org_header = lambda s: f"|{'|'.join(gv(s)+[prettify(s)])}|\n|{'+'.join('-'*(len(gv(s))+1))}|\n"
 org_table = lambda s: org_header(s) + '\n'.join(map(org_line,make_truth_table(s)))
 make_tt_org = lambda s: f"* Truth Table for ~{prettify(s)}~\n{org_table(s)}"
-
-save_bx = lambda s: s
 
 valid_s = lambda s: s.isalpha() or s in valid_symbols
 valid_bx = lambda s: all(map(valid_s,prettify(s).split()))
@@ -204,42 +201,7 @@ class TruthTableGenerator(toga.App):
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = self.main_box
         self.main_window.show()
-        if not hasattr(sys, 'getandroidapilevel'):
-            self.main_window.info_dialog(
-                title="Input Syntax",
-                message="""Please use the symbols from "Input Syntax" below when entering a boolean expression into the input box.
-
-Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
-
-Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).
-
-TO SEE THIS WINDOW AGAIN, go to "Help -> Input Syntax" or use "CTRL+SHIFT+i"
-
-    |   Input Syntax     |   Logic Symbols  |   Name
-    |----------------------|----------------------|--------------------
-    |   ~                        |   ¬, ˜, !                 |   not
-    |   &                        |   ∧, ·, &               |   and
-    |   |                          |   ∨, +, ∥               |   or
-    |   ^                        |   ⊕, ⊻, ≢              |   xor, not equivalence
-    |   ->                       |   →, ⇒, ⊃              |   conditional
-    |   <->                    |   ↔, ⇔, ≡              |   biconditional, equivalence""")
-        else:
-            self.main_window.info_dialog(
-                title="Input Syntax",
-                message="""Please use the symbols from "Syntax" below when entering a boolean expression into the input box.
-
-Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
-
-Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).
-
-|  Syntax  |  Logic      |  Name
-|--------------|---------------|-----------------
-|  ~            |  ¬, ˜, !       |  not
-|  &            |  ∧, ·, &      |  and
-|  |              |  ∨, +, ∥      |  or
-|  ^             |  ⊕, ⊻, ≢     |  xor
-|  -              |  →, ⇒, ⊃ |  conditional
-|  <->          |  ↔, ⇔, ≡ |  biconditional""")
+        self.ShowInputSyntax()
 
     def show_err(self, boolean_expression):
         m_string = f"The boolean expression '{boolean_expression}' is invalid.\n\n" \
@@ -305,7 +267,7 @@ Please limit all boolean variables to single letters of the english alphabet (i.
             title="Import",
             file_types=["txt"])
         
-        boolean_expression = ""
+        boolean_expression = 'p -> q'
 
         with open(filename, "r", encoding='utf-8') as f:
             boolean_expression = f.readline() or 'p -> q'
@@ -314,7 +276,7 @@ Please limit all boolean variables to single letters of the english alphabet (i.
         self.make_tt(widget=None, override=boolean_expression)
 
     def SaveBooleanExpression(self, widget):
-        self.SaveFile("Save", ["txt"], save_bx)
+        self.SaveFile("Save", ["txt"], lambda x: x)
 
     def ExportHTML(self, widget):
         self.SaveFile("Export as HTML", ["html", "txt"], make_tt_html)
@@ -328,23 +290,36 @@ Please limit all boolean variables to single letters of the english alphabet (i.
     def ExportORG(self, widget):
         self.SaveFile("Export as ORG", ["org", "txt"], make_tt_org)
 
-    def ShowInputSyntax(self, widget):
-        return self.main_window.info_dialog(
-            title="Input Syntax",
-            message="""Please use the symbols from "Input Syntax" below when entering a boolean expression into the input box.
-
-Write boolean expressions in infix notation, as if you were writing Python code (e.g. "p & q | r").
-
-Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).
-
-    |   Input Syntax     |   Logic Symbols  |   Name
-    |----------------------|----------------------|--------------------
-    |   ~                        |   ¬, ˜, !                 |   not
-    |   &                        |   ∧, ·, &               |   and
-    |   |                          |   ∨, +, ∥               |   or
-    |   ^                        |   ⊕, ⊻, ≢              |   xor, not equivalence
-    |   ->                       |   →, ⇒, ⊃              |   conditional
-    |   <->                    |   ↔, ⇔, ≡              |   biconditional, equivalence""")
+    def ShowInputSyntax(self, widget=''):
+        if not hasattr(sys, 'getandroidapilevel'):
+            return self.main_window.info_dialog(
+                title="Input Syntax",
+                message="Please use the symbols from \"Input Syntax\" below when entering a boolean expression into the input box.\n\n" \
+                        "Write boolean expressions in infix notation, as if you were writing Python code (e.g. \"p & q | r\").\n\n" \
+                        "Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).\n\n" \
+                        "TO SEE THIS WINDOW AGAIN, go to \"Help -> Input Syntax\" or use \"CTRL+SHIFT+i\"\n\n" \
+                        "|   Input Syntax     |   Logic Symbols  |   Name\n" \
+                        "|----------------------|----------------------|--------------------\n" \
+                        "|   ~                        |   ¬, ˜, !                 |   not\n" \
+                        "|   &                        |   ∧, ·, &               |   and\n" \
+                        "|   |                          |   ∨, +, ∥               |   or\n" \
+                        "|   ^                        |   ⊕, ⊻, ≢              |   xor, not equivalence\n" \
+                        "|   ->                       |   →, ⇒, ⊃              |   conditional\n" \
+                        "|   <->                    |   ↔, ⇔, ≡              |   biconditional, equivalence")
+        else:
+            return self.main_window.info_dialog(
+                title="Input Syntax",
+                message="Please use the symbols from \"Input Syntax\" below when entering a boolean expression into the input box.\n\n" \
+                        "Write boolean expressions in infix notation, as if you were writing Python code (e.g. \"p & q | r\").\n\n" \
+                        "Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).\n\n" \
+                        "|  Syntax  |  Logic      |  Name\n" \
+                        "|--------------|---------------|-----------------\n" \
+                        "|  ~            |  ¬, ˜, !       |  not\n" \
+                        "|  &            |  ∧, ·, &      |  and\n" \
+                        "|  |              |  ∨, +, ∥      |  or\n" \
+                        "|  ^             |  ⊕, ⊻, ≢     |  xor\n" \
+                        "|  -              |  →, ⇒, ⊃ |  conditional\n" \
+                        "|  <->          |  ↔, ⇔, ≡ |  biconditional")
 
 def main():
     return TruthTableGenerator() 
