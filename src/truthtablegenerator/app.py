@@ -1,13 +1,16 @@
 """
 A cross-platform Truth Table Generator written in Python.
 """
+
 import sys
+from inspect import signature
 import toga
 from toga import style
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
-from inspect import signature
+
+# Truth Table Logic
 
 class Infix(object):
     def __init__(self, func):
@@ -40,11 +43,13 @@ make_tt = lambda f: [*map(flatten,[*map(list,zip(gsbfa(f),output(f)))])] # Make 
 gv = lambda s: sorted([*{*filter(str.isalpha,s)}]) # Gets Variables from String
 gvf = lambda s: ','.join(gv(s)) # Get Vars (formatted)
 make_truth_table = lambda s: make_tt(eval(f"lambda {gvf(s)}:['0','1'][{fix_inline(s)}]")) # Make Truth Table from String
-
 get_headings = lambda s: [*gv(s),prettify(s)]
 
-make_tt_html = lambda s: \
-f"""<!DOCTYPE html>
+
+# HTML Function
+
+def make_tt_html(s):
+    return f"""<!DOCTYPE html>
 <html>
 <style>
 th, td {chr(123)}
@@ -76,10 +81,16 @@ code {chr(123)}
 </html>
 """
 
+
+# Markdown Functions
+
 md_line = lambda l: f"|{'|'.join(map(str,l))}|" # Markdown Line
 md_header = lambda s: f"|{'|'.join(gv(s))}|{prettify(s)}|\n|{'|'.join('-'*len(gv(s)))}|:-:|\n" # Markdown Header
 md_table = lambda s: md_header(s)+'\n'.join(map(md_line,make_truth_table(s))) # Markdown Truth Table
 make_tt_markdown = lambda s: f"# Truth Table for `{prettify(s)}`\n{md_table(s)}"
+
+
+# LaTeX Functions
 
 lt_prettify = lambda s: prettify(s).replace(
     '→','\\rightarrow').replace(
@@ -98,13 +109,22 @@ make_tt_latex = lambda s: "\\documentclass[a4paper]{article}\n\\begin{document}"
     "\n\\hline\n" + lt_table(s) + \
     "\n\\end{array}\n\\end{displaymath}\n\\end{document}"
 
+
+# ORG Functions
+
 org_line = lambda l: f"|{'|'.join(map(str,l))}|"
 org_header = lambda s: f"|{'|'.join(gv(s)+[prettify(s)])}|\n|{'+'.join('-'*(len(gv(s))+1))}|\n"
 org_table = lambda s: org_header(s) + '\n'.join(map(org_line,make_truth_table(s)))
 make_tt_org = lambda s: f"* Truth Table for ~{prettify(s)}~\n{org_table(s)}"
 
+
+# Error Checking Functions
+
 valid_s = lambda s: s.isalpha() or s in valid_symbols
-valid_bx = lambda s: all(map(valid_s,prettify(s).split()))
+valid_bx = lambda s: all(map(valid_s,prettify(s).split())) and len(gv(s)) < 6
+
+
+# Application Class
 
 class TruthTableGenerator(toga.App):   
     
@@ -163,7 +183,14 @@ class TruthTableGenerator(toga.App):
                 group=file_group
             )
 
-            self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_, import_)
+            update_table = toga.Command(
+                self.make_tt,
+                label="Update Truth Table",
+                shortcut=toga.Key.MOD_1 + 'u',
+                group=file_group
+            )
+
+            self.commands.add(export_html, export_markdown, export_latex, export_org, input_syntax, save_, import_, update_table)
 
         self.main_box = toga.Box(style=Pack(direction=COLUMN))
 
@@ -173,6 +200,7 @@ class TruthTableGenerator(toga.App):
             'Enter a Boolean Expression: ',
             style=Pack(padding=(0, 5))
         )
+
         self.be_input = toga.TextInput(style=Pack(flex=1), placeholder=default_expression)
 
         input_box = toga.Box(style=Pack(direction=ROW, padding=5))
@@ -297,6 +325,7 @@ class TruthTableGenerator(toga.App):
                 message="Please use the symbols from \"Input Syntax\" below when entering a boolean expression into the input box.\n\n" \
                         "Write boolean expressions in infix notation, as if you were writing Python code (e.g. \"p & q | r\").\n\n" \
                         "Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).\n\n" \
+                        "Please limit all boolean expressions to 5 or fewer unique boolean variables.\n\n" \
                         "TO SEE THIS WINDOW AGAIN, go to \"Help -> Input Syntax\" or use \"CTRL+SHIFT+i\"\n\n" \
                         "|   Input Syntax     |   Logic Symbols  |   Name\n" \
                         "|----------------------|----------------------|--------------------\n" \
@@ -312,6 +341,7 @@ class TruthTableGenerator(toga.App):
                 message="Please use the symbols from \"Input Syntax\" below when entering a boolean expression into the input box.\n\n" \
                         "Write boolean expressions in infix notation, as if you were writing Python code (e.g. \"p & q | r\").\n\n" \
                         "Please limit all boolean variables to single letters of the english alphabet (i.e. p, q, r, s, etc.).\n\n" \
+                        "Please limit all boolean expressions to 5 or fewer unique boolean variables.\n\n" \
                         "|  Syntax  |  Logic      |  Name\n" \
                         "|--------------|---------------|-----------------\n" \
                         "|  ~            |  ¬, ˜, !       |  not\n" \
