@@ -1,7 +1,7 @@
 [tool.briefcase]
 project_name = "Truth Table Generator"
 bundle = "com.mueller14003.github"
-version = "1.3.0"
+version = "1.4.0"
 url = "https://github.com/mueller14003/Truth-Table-Generator"
 license = "BSD license"
 author = 'Kyle Mueller'
