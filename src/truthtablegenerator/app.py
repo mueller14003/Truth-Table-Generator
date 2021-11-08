@@ -5,7 +5,6 @@ A cross-platform Truth Table Generator written in Python.
 import sys
 from inspect import signature
 import toga
-from toga import style
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
@@ -40,14 +39,12 @@ biconditional = Infix(lambda a,b: ~(a ^ b))
 
 # Makes `->` and `<->` inline functions
 def fix_inline(s):
-    return (s.replace('<->','|biconditional|')
-             .replace('->','|conditional|'))
+    return s.replace(
+        '<->','|biconditional|').replace(
+        '->','|conditional|')
 
 # Flattens lists
-def flatten(l): 
-    if isinstance(l,list):
-        return sum(map(flatten,l),[])
-    return [l]
+flatten = lambda l: sum(map(flatten,l),[]) if isinstance(l,list) else [l]
 
 # Takes a function as an input and returns the arity of the function
 def get_arity(f): 
@@ -55,11 +52,20 @@ def get_arity(f):
 
 # Gets the input columns for the truth table as strings
 def get_bits(n): 
+    return [*map(lambda x:[*map(int,bin(x)[2:].zfill(n))],range(2**n))]
+
+
+# Gets the input columns for the truth table as strings
+def get_bits_s(n): 
     return [*map(lambda x:[*map(str,bin(x)[2:].zfill(n))],range(2**n))]
 
 # Given an input function, use the arity to get the input columns for the truth table
 def get_bits_f(f): 
     return get_bits(get_arity(f))
+
+# Given an input function, use the arity to get the input columns for the truth table
+def get_bits_f_s(f): 
+    return get_bits_s(get_arity(f))
 
 # Gets the output column of the truth table
 def output(f): 
@@ -67,7 +73,7 @@ def output(f):
 
 # Combines the input columns of the truth table with the output column
 def make_tt(f): 
-    return [*map(flatten,[*map(list,zip(get_bits_f(f),output(f)))])]
+    return [*map(flatten,[*map(list,zip(get_bits_f_s(f),output(f)))])]
 
 # Gets the input variables for the boolean expression
 def get_vars(s):
@@ -75,7 +81,7 @@ def get_vars(s):
 
 # Gets the parameters to be used in the generated function
 def get_parameters(s):
-    return lambda s: ','.join(get_vars(s))
+    return ','.join(get_vars(s))
 
 # Takes in a boolean expression as a string, converts it into a function, and makes the truth table
 def make_truth_table(s):
