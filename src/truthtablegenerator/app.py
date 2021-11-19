@@ -5,6 +5,7 @@ A cross-platform Truth Table Generator written in Python.
 import sys
 from inspect import signature
 import toga
+from toga import style
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
@@ -291,7 +292,7 @@ class TruthTableGenerator(toga.App):
             style=Pack(padding=(0, 5))
         )
 
-        self.be_input = toga.TextInput(style=Pack(flex=1), placeholder=default_expression)
+        self.be_input = toga.TextInput(style=Pack(flex=1), placeholder=default_expression, on_change=self.make_tt_auto)
 
         input_box = toga.Box(style=Pack(direction=ROW, padding=5))
         input_box.add(input_label)
@@ -336,8 +337,6 @@ class TruthTableGenerator(toga.App):
     def make_tt(self, widget='', override=''):
         boolean_expression = override or self.be_input.value or 'p -> q'
 
-        print(boolean_expression)
-
         if not valid_bx(boolean_expression):
             self.show_err(boolean_expression)
 
@@ -366,6 +365,30 @@ class TruthTableGenerator(toga.App):
             except:
                 self.show_err(boolean_expression)
 
+    def make_tt_auto(self, widget='', override=''):
+        boolean_expression = override or self.be_input.value or 'p -> q'
+
+        tt_headings = get_headings(boolean_expression)
+        tt_data = make_truth_table(boolean_expression)
+
+        if hasattr(sys, 'getandroidapilevel'):
+            p_string = '\n'.join([*map(' | '.join,[tt_headings]+tt_data)])
+
+            self.main_window.info_dialog(
+                title=f"Truth Table for {prettify(boolean_expression)}",
+                message=f"{p_string}")
+        else:
+            self.main_box.remove(self.truth_table)
+
+            self.truth_table = toga.Table(
+                headings=tt_headings, 
+                data=tt_data, 
+                style=Pack(
+                    flex=1, 
+                    padding=5))
+                        
+            self.main_box.add(self.truth_table)
+
     def GetFilename(self, title, file_types):
         return self.main_window.save_file_dialog(
             title=title, 
@@ -373,12 +396,21 @@ class TruthTableGenerator(toga.App):
             file_types=file_types)
 
     def SaveFile(self, title, file_types, export_function):
-        filename = self.GetFilename(title, file_types)
-
         boolean_expression = self.be_input.value or 'p -> q'
+
+        if not valid_bx(boolean_expression):
+            self.show_err(boolean_expression)
         
-        with open(filename, "w", encoding='utf-8') as f:
-            f.writelines(export_function(boolean_expression))
+        else:
+            try:
+                self.make_tt_auto(widget=None)
+
+                filename = self.GetFilename(title, file_types)
+            
+                with open(filename, "w", encoding='utf-8') as f:
+                    f.writelines(export_function(boolean_expression))
+            except:
+                self.show_err(boolean_expression)
 
     def ImportBooleanExpression(self, widget):
         filename = self.main_window.open_file_dialog(
@@ -390,8 +422,12 @@ class TruthTableGenerator(toga.App):
         with open(filename, "r", encoding='utf-8') as f:
             boolean_expression = f.readline() or 'p -> q'
 
-        self.be_input.value = boolean_expression
-        self.make_tt(widget=None, override=boolean_expression)
+        if not valid_bx(boolean_expression):
+            self.show_err(boolean_expression)
+
+        else:
+            self.be_input.value = boolean_expression
+            self.make_tt(widget=None, override=boolean_expression)
 
     def SaveBooleanExpression(self, widget):
         self.SaveFile("Save", ["txt"], lambda x: x)
@@ -442,4 +478,4 @@ class TruthTableGenerator(toga.App):
                         "|  <->          |  ↔, ⇔, ≡ |  biconditional")
 
 def main():
-    return TruthTableGenerator() 
+    return TruthTableGenerator()
