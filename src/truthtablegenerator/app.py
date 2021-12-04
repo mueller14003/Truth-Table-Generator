@@ -367,29 +367,32 @@ class TruthTableGenerator(toga.App):
 
     def make_tt_auto(self, widget='', override=''):
         if not hasattr(sys, 'getandroidapilevel'):
-            boolean_expression = override or self.be_input.value or 'p -> q'
-            
-            if valid_bx(boolean_expression):
-                tt_headings = get_headings(boolean_expression)
-                tt_data = make_truth_table(boolean_expression)
+            try:
+                boolean_expression = override or self.be_input.value or 'p -> q'
+                
+                if valid_bx(boolean_expression):
+                    tt_headings = get_headings(boolean_expression)
+                    tt_data = make_truth_table(boolean_expression)
 
-                if hasattr(sys, 'getandroidapilevel'):
-                    p_string = '\n'.join([*map(' | '.join,[tt_headings]+tt_data)])
+                    if hasattr(sys, 'getandroidapilevel'):
+                        p_string = '\n'.join([*map(' | '.join,[tt_headings]+tt_data)])
 
-                    self.main_window.info_dialog(
-                        title=f"Truth Table for {prettify(boolean_expression)}",
-                        message=f"{p_string}")
-                else:
-                    self.main_box.remove(self.truth_table)
+                        self.main_window.info_dialog(
+                            title=f"Truth Table for {prettify(boolean_expression)}",
+                            message=f"{p_string}")
+                    else:
+                        self.main_box.remove(self.truth_table)
 
-                    self.truth_table = toga.Table(
-                        headings=tt_headings, 
-                        data=tt_data, 
-                        style=Pack(
-                            flex=1, 
-                            padding=5))
-                                
-                    self.main_box.add(self.truth_table)
+                        self.truth_table = toga.Table(
+                            headings=tt_headings, 
+                            data=tt_data, 
+                            style=Pack(
+                                flex=1, 
+                                padding=5))
+                                    
+                        self.main_box.add(self.truth_table)
+            except:
+                pass
 
     def GetFilename(self, title, file_types):
         return self.main_window.save_file_dialog(
