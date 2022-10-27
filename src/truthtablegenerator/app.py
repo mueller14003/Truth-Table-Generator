@@ -3,6 +3,7 @@ A cross-platform Truth Table Generator written in Python.
 """
 
 import sys
+from functools import reduce
 from inspect import signature
 import toga
 from toga import style
@@ -27,6 +28,10 @@ valid_symbols = ['→','↔','∨','∧','⊕','¬','(',')']
 
 #         ~   ¬     ^   ⊕     &    ∧     |    ∨
 t_dict = {38: 8743, 94: 8853, 124: 8744, 126: 172} # Dict for str.translate()
+
+# 'Ands' conjoined string characters
+def andm_it(s):
+    return reduce(lambda cum,it: cum+'&'*(cum[-1].isalpha() and it.isalpha())+it, s)
 
 # Prettifies and input string by using more visually appealing symbols and equalizing spacing
 def prettify(s): 
@@ -212,7 +217,7 @@ def valid_c(s):
 
 # Checks if a boolean expression is valid
 def valid_bx(s):
-    return all(map(valid_c,prettify(s).split())) and len(get_vars(s)) < 6
+    return len(s) < 80 and all(map(valid_c,prettify(s).split())) and len(get_vars(s)) < 6
 
 
 # Application Class
@@ -335,7 +340,7 @@ class TruthTableGenerator(toga.App):
                 message=m_string+"\n\nPress CTRL+SHIFT+i for instructions on proper input syntax.")
 
     def make_tt(self, widget='', override=''):
-        boolean_expression = override or self.be_input.value or 'p -> q'
+        boolean_expression = andm_it(override or self.be_input.value or 'p -> q')
 
         if not valid_bx(boolean_expression):
             self.show_err(boolean_expression)
@@ -368,7 +373,7 @@ class TruthTableGenerator(toga.App):
     def make_tt_auto(self, widget='', override=''):
         if not hasattr(sys, 'getandroidapilevel'):
             try:
-                boolean_expression = override or self.be_input.value or 'p -> q'
+                boolean_expression = andm_it(override or self.be_input.value or 'p -> q')
                 
                 if valid_bx(boolean_expression):
                     tt_headings = get_headings(boolean_expression)
@@ -401,7 +406,7 @@ class TruthTableGenerator(toga.App):
             file_types=file_types)
 
     def SaveFile(self, title, file_types, export_function):
-        boolean_expression = self.be_input.value or 'p -> q'
+        boolean_expression = andm_it(self.be_input.value or 'p -> q')
 
         if not valid_bx(boolean_expression):
             self.show_err(boolean_expression)
@@ -425,7 +430,7 @@ class TruthTableGenerator(toga.App):
         boolean_expression = 'p -> q'
 
         with open(filename, "r", encoding='utf-8') as f:
-            boolean_expression = f.readline() or 'p -> q'
+            boolean_expression = andm_it(f.readline() or 'p -> q')
 
         if not valid_bx(boolean_expression):
             self.show_err(boolean_expression)
